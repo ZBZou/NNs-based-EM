@@ -18,7 +18,7 @@ ep = [0:0.01:3];
 taps_max = 5;
 taps_min = 3;
 packets = 100;
-N = 20; 
+N = 15; 
 
 BER_total = zeros(length(SNRdB),length(ep));
 O = zeros(length(SNRdB),length(ep));
@@ -37,7 +37,7 @@ for n = 1:length(SNRdB)
       data = randi([0 1],N,K*packets);
       s = qammod(data',M,'InputType','bit','UnitAveragePower',true);
       s = s';
-      Hst = zeros(Nu,T, Nu, T);
+      Hst = zeros(Nu,T, Nu, T); %4x10x4x10 kernel
         for u1 = 1:Nu
             for t1 = 1:T
                 for u2 = 1:Nu
@@ -66,14 +66,14 @@ for n = 1:length(SNRdB)
             ep_k = ep(k);
             hat_phi = approx_eigenfunc(phi,ep_k);
             hat_psi(:,:,k) = dual(hat_phi,H2d);
-            O1 = soft_orth(hat_phi);
-            O2 = soft_orth(hat_psi(:,:,k));   
+            O1 = soft_orth(hat_phi,N);
+            O2 = soft_orth(hat_psi(:,:,k),N);   
             O_temp(k) = O_temp(k) + O2;
            for i = 1:N
               for j = 1:packets
                  temp_phi = hat_phi(:,i);
                  Phi = reshape(temp_phi, Nu,T);
-                 Tx(:,:,j,k) = Tx(:,:,j,k) + Phi*s(i,j);
+                 Tx(:,:,j,k) = Tx(:,:,j,k) + Phi*s(i,j); %multiplexing
               end
            end
         end
@@ -84,7 +84,7 @@ for n = 1:length(SNRdB)
                for i = 1:Nu
                   for j = 1:T
                      for l = 1:packets
-                         Rx(i,j,l,k) = sum(sum(squeeze(Hst(i,j,:,:)) .* Tx(:,:,l,Nep))) + sigma*(randn()+randn()*1i)/sq2;
+                         Rx(i,j,l,k) = sum(sum(squeeze(Hst(i,j,:,:)) .* Tx(:,:,l,Nep))) + sigma*(randn()+randn()*1i)/sq2; %integral 
                      end
                   end
                end      
@@ -97,7 +97,7 @@ for n = 1:length(SNRdB)
               for j = 1:packets
                  temp_psi = hat_psi(:,i,k);
                  Psi = reshape(temp_psi,Nu,T);
-                 r(i,j) = sum(sum(conj(Psi).*Rx(:,:,j,k)));
+                 r(i,j) = sum(sum(conj(Psi).*Rx(:,:,j,k))); %demultiplexing
               end
            end
            p = mean(abs(r').^2);
@@ -109,29 +109,32 @@ for n = 1:length(SNRdB)
    BER_total(n,:) = ber_temp'/Nloop;
    O(n,:) = O_temp'/Nloop;
 end
-Thp = (K*N*data_size-K*N*BER_total)/(Te*10^6);
+%%
+data_size = ones(size(BER_total,1),size(BER_total,2));
+Thp = (K*N*data_size-K*N*BER_total)/(Te*10^6); %throughput
 %% BER
 f1 = figure;
 plot_ber = repmat(SNRdB',1,Nep);
-plot_O = O/(N*(N-1));
-plt = surf(plot_ber,plot_O,BER_total,'FaceAlpha',0.6);
+plot_O = 0;
+plt = surf(plot_ber,plot_O,BER_total);
 colorbar;
+set(gca,'fontsize',26);
 colormap('hot');
-ylim([0 0.02])
+ylim([0 0.05])
 view(0,90);
 plt.EdgeColor = 'none';
 xlabel('SNR [dB]')
-ylabel('Soft Orthogonality')
+ylabel('Soft Orthogonality $$O(\hat{\Psi})$$','Interpreter','Latex')
 zlabel('BER')
 %%
 savefile = 0;
 if savefile ==1
-   save Ber_4x5_N20_ep3_4QAM.mat SNRdB plot_O BER_total -v7.3
+   save Ber_4x5_N20_ep3_4QAM_2d.mat SNRdB plot_O BER_total -v7.3
 end
 %%
 savefig = 0;
 if savefig == 1
-filename = 'Ber_N30_ep3_1';
+filename = 'Ber_4x5_N20_ep3_4QAM_2d';
 name1 = append(filename, '.fig');
 name2 = append(filename, '.pdf');
 saveas(f1, name1);
@@ -145,25 +148,25 @@ plt = surf(plot_ber,plot_O,Thp);
 plt.EdgeColor = 'none';
 view(55,45);
 ylim([0 0.05])
-set(gca,'fontsize',24);
 plt.EdgeColor = 'none';
-xlabel('SNR [dB]')
-ylabel('Soft Orthogonality O(\Psi)')
+set(gca,'fontsize',26);
+xlabel('SNR [dB]','Rotation',-35,'VerticalAlignment','middle');
+ylabel('Soft Orthogonality $$O(\hat{\Psi})$$','Interpreter','Latex','Rotation',15,'VerticalAlignment','middle')
 zlabel('Throughput [Mbps]')
 
 %%
-savefile = 0;
+savefile = 1;
 if savefile ==1
-   save Ber_N20_ep3.mat SNRdB plot_O BER_total -v7.3
+   save Th_4x5_N20_ep3_4QAM_3d.mat SNRdB plot_O Thp -v7.3
 end
 %%
 savefig = 0;
 if savefig == 1
-filename = 'Ber_4x5_N10_ep3_4QAM_2d';
+filename = 'Th_4x5_N20_ep3_4QAM_3d';
 name1 = append(filename, '.fig');
 name2 = append(filename, '.pdf');
-saveas(f1, name1);
-exportgraphics(f1, name2);
+saveas(f2, name1);
+exportgraphics(f2, name2);
 end
 
 

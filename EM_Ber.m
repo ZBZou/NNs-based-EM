@@ -18,7 +18,7 @@ ep = [0:0.01:3];
 taps_max = 5;
 taps_min = 3;
 packets = 100;
-N = 15; 
+N = 10; 
 
 BER_total = zeros(length(SNRdB),length(ep));
 O = zeros(length(SNRdB),length(ep));
@@ -115,11 +115,12 @@ Thp = (K*N*data_size-K*N*BER_total)/(Te*10^6); %throughput
 %% BER
 f1 = figure;
 plot_ber = repmat(SNRdB',1,Nep);
-plot_O = 0;
+plot_O = O;
 plt = surf(plot_ber,plot_O,BER_total);
 colorbar;
 set(gca,'fontsize',26);
 colormap('hot');
+caxis([0,0.2]); 
 ylim([0 0.05])
 view(0,90);
 plt.EdgeColor = 'none';
@@ -129,12 +130,12 @@ zlabel('BER')
 %%
 savefile = 0;
 if savefile ==1
-   save Ber_4x5_N20_ep3_4QAM_2d.mat SNRdB plot_O BER_total -v7.3
+   save Ber_4x5_N10_ep3_4QAM_2d.mat SNRdB plot_O BER_total -v7.3
 end
 %%
 savefig = 0;
 if savefig == 1
-filename = 'Ber_4x5_N20_ep3_4QAM_2d';
+filename = 'Ber_4x5_N10_ep3_4QAM_2d';
 name1 = append(filename, '.fig');
 name2 = append(filename, '.pdf');
 saveas(f1, name1);
@@ -155,9 +156,9 @@ ylabel('Soft Orthogonality $$O(\hat{\Psi})$$','Interpreter','Latex','Rotation',1
 zlabel('Throughput [Mbps]')
 
 %%
-savefile = 1;
+savefile = 0;
 if savefile ==1
-   save Th_4x5_N20_ep3_4QAM_3d.mat SNRdB plot_O Thp -v7.3
+   save Th_4x5_N10_ep3_4QAM_3d.mat SNRdB plot_O Thp -v7.3
 end
 %%
 savefig = 0;

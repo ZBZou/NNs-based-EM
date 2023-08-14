@@ -24,7 +24,6 @@ sq2 = sqrt(2);
 SNRdB = [0:1:30];
 taps_max = 5;
 taps_min = 3;
-packets = 1;
 
 BER_total = zeros(length(SNRdB),Nep);
 O = zeros(length(SNRdB),Nep);
@@ -39,51 +38,45 @@ for m = 1:Nloop
       ber_temp = zeros(Nep,1);
       O_temp = zeros(Nep,1);
   
-      data = randi([0 1],N,K*packets);
+      data = randi([0 1],N,K);
       s = qammod(data',M,'InputType','bit','UnitAveragePower',true);
       s = s';
-      Tx = zeros(Nu,T,packets,Nep);  
+      Tx = zeros(Nu,T,Nep);  
         for k = 1:Nep
          O1 = soft_orth(hat_phi(:,:,k),N);
          O2 = soft_orth(hat_psi(:,:,k),N);   
          O_temp(k) = O_temp(k) + O2;
 
-           for i = 1:N
-              for j = 1:packets
-                 temp_phi = hat_phi(:,i,k);
-                 Phi = reshape(temp_phi, Nu,T);
-                 Tx(:,:,j,k) = Tx(:,:,j,k) + Phi*s(i,j); %multiplexing
-              end
+           for i = 1:N 
+              temp_phi = hat_phi(:,i,k);
+              Phi = reshape(temp_phi, Nu,T);
+              Tx(:,:,k) = Tx(:,:,k) + Phi*s(i); %multiplexing 
            end
         end
    
         
         %%
-           Rx = zeros(Nu, T, packets,Nep);
+           Rx = zeros(Nu,T,Nep);
            for k = 1:Nep
                for i = 1:Nu
                   for j = 1:T
-                     for l = 1:packets
-                         Rx(i,j,l,k) = sum(sum(squeeze(Hst(i,j,:,:)) .* Tx(:,:,l,Nep))) + sigma*(randn()+randn()*1i)/sq2; %integral 
-                     end
+                      Rx(i,j,k) = sum(sum(squeeze(Hst(i,j,:,:)) .* Tx(:,:,Nep))) + sigma*(randn()+randn()*1i)/sq2; %integral 
                   end
                end      
            end
         %%
         
         for k = 1:Nep
-           r = zeros(N,packets);
+           r = zeros(N,1);
            for i = 1:N
-              for j = 1:packets
-                 temp_psi = hat_psi(:,i,k);
-                 Psi = reshape(temp_psi,Nu,T);
-                 r(i,j) = sum(sum(conj(Psi).*Rx(:,:,j,k))); %demultiplexing
-              end
+              temp_psi = hat_psi(:,i,k);
+              Psi = reshape(temp_psi,Nu,T);
+              r(i) = sum(sum(conj(Psi).*Rx(:,:,k))); %demultiplexing
            end
            p = mean(abs(r').^2);
            hat_s = qamdemod(r'./p,M,'OutputType','bit','UnitAveragePower',true);
            hat_s = hat_s';
-           ber_temp(k) = ber_temp(k)+ length(find(round(data - hat_s)))/(N*K*packets);
+           ber_temp(k) = ber_temp(k)+ length(find(round(data - hat_s)))/(N*K);
         end
    BER_total(n,:) = BER_total(n,:) + ber_temp';
    O(n,:) = O(n,:) + O_temp';
